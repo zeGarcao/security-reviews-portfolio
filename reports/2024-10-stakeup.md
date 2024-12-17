@@ -1,12 +1,12 @@
-# (HIGH) Artificial inflation of total USD value due to repeated _setUsdPerShare calls with the same rate
+# (HIGH) Artificial inflation of total USD value due to repeated `_setUsdPerShare` calls with the same rate
 
-In StakeUp's protocol, the rate of USDC per share of stUSDC is updated in the internal [_setUsdPerShare](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L92-L109) function of the [StUsdcLite.sol](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol) contract. This function can be called both from the external [setUsdPerShare](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L53-L55) function, which only the protocol's keeper can trigger, and from the permissionless external [poke](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdc.sol#L164-L216) function, which resides in the [StUsdc.sol](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdc.sol) contract. Apart from updating the USDC per share rate, the [_setUsdPerShare](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L92-L109) function is also responsible for updating the total USD value held by the system, which occurs inside the internal [_totalUsd](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L74-L81) function of the [StUsdcLite.sol](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol).
+In StakeUp's protocol, the rate of USDC per share of stUSDC is updated in the internal [`_setUsdPerShare`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L92-L109) function of the [`StUsdcLite.sol`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol) contract. This function can be called both from the external [`setUsdPerShare`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L53-L55) function, which only the protocol's keeper can trigger, and from the permissionless external [`poke`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdc.sol#L164-L216) function, which resides in the [`StUsdc.sol`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdc.sol) contract. Apart from updating the USDC per share rate, the [`_setUsdPerShare`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L92-L109) function is also responsible for updating the total USD value held by the system, which occurs inside the internal [`_totalUsd`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L74-L81) function of the [`StUsdcLite.sol`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol).
 
-If the [_setUsdPerShare](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L92-L109) function is called multiple times with the same rate, and with [_rewardPerSecond](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L28) already set, the total USD value will be artificially inflated, enabling users to withdraw more assets than they actually hold.
+If the [`_setUsdPerShare`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L92-L109) function is called multiple times with the same rate, and with [`_rewardPerSecond`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L28) already set, the total USD value will be artificially inflated, enabling users to withdraw more assets than they actually hold.
 
 ## Context
 
-- [StUsdcLite.sol#L92-L109](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L92-L109)
+- [`StUsdcLite.sol#L92-L109`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L92-L109)
 
 ## Impact
 
@@ -14,7 +14,7 @@ The total USD value held by the system will be artificially inflated, enabling u
 
 ## Proof of Concept
 
-This issue occurs when the USD per share is updated repeatedly with the same rate, with [_rewardPerSecond](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L28) holding a non-zero value, through the [_setUsdPerShare](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L92-L109) function. Here's a snippet of the [_setUsdPerShare](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L92-L109) code:
+This issue occurs when the USD per share is updated repeatedly with the same rate, with [`_rewardPerSecond`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L28) holding a non-zero value, through the [`_setUsdPerShare`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L92-L109) function. Here's a snippet of the [`_setUsdPerShare`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L92-L109) code:
 
 ```solidity
  92:    function _setUsdPerShare(uint256 usdPerShare, uint256 timestamp) internal {
@@ -37,7 +37,7 @@ This issue occurs when the USD per share is updated repeatedly with the same rat
 109:    }
 ```
 
-As seen, the [_rewardPerSecond](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L28) is not reset to zero when `usdPerShare == lastUsdPerShare_`. As a result, the total USD is artificially inflated each time the floor value is retrieved by the [_totalUsd](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L74-L81) function. The total USD value is also updated at line 106. Here's a snippet of the [_totalUsd](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L74-L81) function:
+As seen, the [`_rewardPerSecond`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L28) is not reset to zero when `usdPerShare == lastUsdPerShare_`. As a result, the total USD is artificially inflated each time the floor value is retrieved by the [`_totalUsd`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L74-L81) function. The total USD value is also updated at line 106. Here's a snippet of the [`_totalUsd`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L74-L81) function:
 
 ```solidity
 74:     function _totalUsd() internal view returns (uint256) {
@@ -50,11 +50,11 @@ As seen, the [_rewardPerSecond](https://github.com/stakeup-protocol/stakeup-cont
 81:     }
 ```
 
-The above function computes the total USD value held by the system, yield included. Since [_rewardPerSecond](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L28) is not reset, the value returned by the [_totalUsd](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L74-L81) will inflate over time, even though the USD per share remains the same.
+The above function computes the total USD value held by the system, yield included. Since [`_rewardPerSecond`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L28) is not reset, the value returned by the [`totalUsd`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L74-L81) will inflate over time, even though the USD per share remains the same.
 
-This artificial inflation enables users to withdraw more assets than they hold. To demonstrate this, two Proofs of Concept are shown: one using the [setUsdPerShare](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L53-L55) function and the other using the [poke](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdc.sol#L164-L216) function.
+This artificial inflation enables users to withdraw more assets than they hold. To demonstrate this, two Proofs of Concept are shown: one using the [`setUsdPerShare`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L53-L55) function and the other using the [`poke`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdc.sol#L164-L216) function.
 
-Here's a complete Proof of Concept using the [setUsdPerShare](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L53-L55) function:
+Here's a complete Proof of Concept using the [`setUsdPerShare`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L53-L55) function:
 
 ```solidity
 function test_inflationBugThroughKeeper() public {
@@ -106,7 +106,7 @@ ALICE stUSDC BALANCE   : 4999999999999999996000
 BOB stUSDC BALANCE     : 4999999999999999996000
 ```
 
-Here's a complete Proof of Concept using the [poke](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdc.sol#L164-L216) function:
+Here's a complete Proof of Concept using the [`poke`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdc.sol#L164-L216) function:
 
 ```solidity
 function test_inflationBugThroughPoke() public {
@@ -192,11 +192,144 @@ BOB USDC BALANCE       : 0
 
 ## Recommendation
 
-Consider changing the else if condition at line 101 of the [StUsdcLite.sol](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol) contract as follows:
+Consider changing the else if condition at line 101 of the [`StUsdcLite.sol`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol) contract as follows:
 
 ```solidity
 101: (-)  else if (usdPerShare < lastUsdPerShare_)
 101: (+)  else if (usdPerShare <= lastUsdPerShare_)
 ```
 
-This will ensure that [_rewardPerSecond](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L28) is reset to zero if the USD per share is updated with the same rate.
+This will ensure that [`_rewardPerSecond`](https://github.com/stakeup-protocol/stakeup-contracts/blob/67a5e7bbd019c745239f9d5da10208da57dc1c64/src/token/StUsdcLite.sol#L28) is reset to zero if the USD per share is updated with the same rate.
+
+# (HIGH) Partial match order cancellation may cause fund loss for lenders and borrowers
+
+In Bloom's protocol, lenders can cancel their match orders through the [`killMatchOrder`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/Orderbook.sol#L109-L115) function, which resides in the [`Orderbook.sol`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/Orderbook.sol) contract. This function loops through all the lender's match orders in a LIFO manner, attempting to cancel orders until the desired amount has been removed. However, if half of a match order is canceled, the remaining portion is lost because the order is removed from the list of match orders. This occurs because line 266 compares the remaining lender's collateral with the amount to be removed, which, in this case, are equal. Since these two values match, the match order is removed from the list, causing the remaining funds to be lost.
+
+## Context
+
+- [`Orderbook.sol#L266`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/Orderbook.sol#L266)
+
+## Impact
+
+Lenders and borrowers will lose funds whenever half of a match order is canceled.
+
+## Proof of Concept
+
+Let's break it down step by step to understand why this happens.
+
+Alice, a lender, opens a lending order for 1,000 USDC.
+
+Joe, a whitelisted borrower, decides to fulfill Alice's position.
+
+For whatever reason, Alice decides to cancel 500 USDC and triggers the [`killMatchOrder`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/Orderbook.sol#L109-L115) function, where the problem begins. The [`killMatchOrder`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/Orderbook.sol#L109-L115) function calls the internal [`_closeMatchOrders`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/Orderbook.sol#L239-L273) function to loop through Alice's match orders and cancel them. In this case, Alice has only one match order, previously matched by Joe.
+
+Let's examine the [`_closeMatchOrders`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/Orderbook.sol#L239-L273) function:
+
+1. The function first retrieves all of Alice's match orders and defines a variable to hold the remaining amount to be canceled:
+
+```solidity
+240:    MatchOrder[] storage matches = _userMatchedOrders[account];
+241:    uint256 remainingAmount = amount;
+```
+
+2. Next, it loops through the list of match orders. Since Alice only has one match order, it checks if this order is already closed by verifying if the lender's collateral is 0, which is not our case:
+
+```solidity
+248:    if (matches[index].lCollateral == 0) {
+249:        matches.pop();
+250:        continue;
+251:    }
+```
+
+3. If there is still a remaining amount to be canceled, the function updates the state accordingly, adjusting collaterals and idle capital:
+
+```solidity
+253:    if (remainingAmount != 0) {
+254:        uint256 amountToRemove = Math.min(remainingAmount, matches[index].lCollateral);
+255:        uint256 borrowAmount = uint256(matches[index].bCollateral);
+256:
+257:        if (amountToRemove != matches[index].lCollateral) {
+258:            borrowAmount = amountToRemove.divWad(_leverage);
+259:            matches[index].lCollateral -= uint128(amountToRemove);
+260:            matches[index].bCollateral -= uint128(borrowAmount);
+261:        }
+262:        remainingAmount -= amountToRemove;
+263:        _idleCapital[matches[index].borrower] += borrowAmount;
+264:
+265:        emit MatchOrderKilled(account, matches[index].borrower, amountToRemove);
+266:        if (matches[index].lCollateral == amountToRemove) matches.pop();
+267:    }
+```
+
+The issue occurs on line 266, where the remaining lender collateral is compared with the amount to be removed. Since the lender collateral is updated, on line 259, to 500 USDC (the same as the amount Alice wants to remove), the match order is removed from the list, resulting in both the lender and borrower losing the remaining funds.
+
+Here's a complete Proof of Concept:
+
+```solidity
+function test_lostFundsByKillingHalfMatchOrder() public {
+    // ************************ SETUP ************************
+    // `owner` sets `borrower` as a whitelisted borrower
+    vm.prank(owner);
+    bloomPool.whitelistBorrower(borrower, true);
+
+    // `alice` lends 1,000 USDC
+    uint256 lendAmount = 1_000e6;
+    _createLendOrder(alice, lendAmount);
+    assertEq(bloomPool.amountOpen(alice), lendAmount);
+
+    // `borrower` fulfills `alice`'s order
+    uint256 borrowAmount = _fillOrder(alice, lendAmount);
+    assertEq(bloomPool.amountOpen(alice), 0);
+    assertEq(bloomPool.matchedDepth(), lendAmount);
+
+    // *********************** ACTION ************************
+    // `alice` withdraws 500 USDC
+    uint256 halfAmount = lendAmount / 2;
+    vm.prank(alice);
+    uint256 totalRemoved = bloomPool.killMatchOrder(halfAmount);
+    assertEq(totalRemoved, halfAmount);
+    assertEq(bloomPool.matchedDepth(), halfAmount);
+
+    // ************************ TEST *************************
+    // Asserting that `alice` has no match orders, despite having killed only half of a match order
+    uint256 aliceMatchOrderCount = bloomPool.matchedOrderCount(alice);
+    assertEq(aliceMatchOrderCount, 0);
+    console.log("ALICE MATCH ORDER COUNT    :", aliceMatchOrderCount);
+
+    // Asserting that `alice` has no open orders
+    uint256 aliceAmountOpen = bloomPool.amountOpen(alice);
+    assertEq(aliceAmountOpen, 0);
+    console.log("ALICE AMOUNT OPEN          :", aliceAmountOpen);
+
+    // Asserting that `alice` now only has half of her initial balance
+    uint256 aliceUsdcBalance = stable.balanceOf(alice);
+    assertEq(aliceUsdcBalance, halfAmount);
+    console.log("ALICE USDC BALANCE         :", aliceUsdcBalance);
+
+    // Asserting that `borrower` only has half of their initial balance in the form of idle capital
+    uint256 borrowerIdleCapital = bloomPool.idleCapital(borrower);
+    assertEq(borrowerIdleCapital, borrowAmount / 2);
+    console.log("BORROWER IDLE CAPITAL      :", borrowerIdleCapital);
+}
+```
+
+Logs:
+```
+ALICE MATCH ORDER COUNT    : 0
+ALICE AMOUNT OPEN          : 0
+ALICE USDC BALANCE         : 500000000
+BORROWER IDLE CAPITAL      : 10000000
+```
+
+It is **important** to note that this is not the only scenario that triggers the issue. For instance, if Alice had two match orders of 500 USDC each, and she wanted to withdraw 750 USDC, the second order would be affected similarly. There are multiple combinations beyond the example of withdrawing half of a position.
+
+## Recommendation
+
+Consider changing the condition on line 266 as follows:
+
+```solidity
+266: (-)    if (matches[index].lCollateral == amountToRemove) matches.pop();
+266: (+)    if (matches[index].lCollateral == 0) matches.pop();
+```
+
+This change guarantees that a match order is removed only when there is no longer any collateral from the lender.
