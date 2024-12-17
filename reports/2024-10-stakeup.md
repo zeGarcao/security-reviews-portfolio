@@ -333,3 +333,35 @@ Consider changing the condition on line 266 as follows:
 ```
 
 This change guarantees that a match order is removed only when there is no longer any collateral from the lender.
+
+# (MEDIUM) LIFO conversion of match orders into live orders could lead to borrower DoS and race to kill orders
+
+In Bloom's protocol, match orders are converted into live orders whenever a market maker swaps in RWA for USDC by triggering the [`swapIn`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/BloomPool.sol#L159-L193) function, which resides in the [`BloomPool.sol`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/BloomPool.sol) contract. This conversion occurs inside the internal [`_convertMatchOrders`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/BloomPool.sol#L378-L423) function of the [`BloomPool.sol`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/BloomPool.sol) contract and is done in a LIFO manner. This means that the older match orders will be the last ones to be converted, which is unfair for borrowers. As a result, borrowers could face an unfair temporary DoS.
+
+## Context
+
+- [`BloomPool.sol#L384-L414`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/BloomPool.sol#L384-L414)
+
+## Impact
+
+Borrowers could experience a DoS due to how match orders are converted in a LIFO manner. Therefore, this can trigger a race to be the first in the list, thus incentivizing borrowers to kill their match orders, which is not capital efficient. Additionally, this poor user experience could hinder onboarding new users.
+
+## Proof of Concept
+
+Let's imagine that Alice, a lender, has the following list of match orders, where the first one (`m1`) was matched by Bob, a whitelisted borrower of the protocol:
+
+- List of Alice's match orders: `[m1, m2, m3, m4, m5, m6]`
+
+As previously mentioned, the conversion of match orders into live ones happens in a LIFO manner, meaning that the first one to be converted is `m6`.
+
+With that said, a market maker converts `m6` and `m5` into live orders, making Bob's order closer to being converted. However, new borrowers come along and match some more of Alice's position, appending, for example, three more match orders to the list (`m7`, `m8`, `m9`):
+
+- List of Alice's match orders: `[m1, m2, m3, m4, m7, m8, m9]`
+
+As a result, Bob is incentivized to kill his match order and re-match it again so that he can see his order converted more quickly.
+
+Another alternative for Bob would be to wait an undetermined amount of time until his order is converted, which is unfair since Bob was the first borrower to create a match order.
+
+## Recommendation
+
+Consider converting match orders into live orders in a FIFO manner instead of LIFO, improving fairness in the process and mitigating the need to race to kill orders.
