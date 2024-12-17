@@ -365,3 +365,132 @@ Another alternative for Bob would be to wait an undetermined amount of time unti
 ## Recommendation
 
 Consider converting match orders into live orders in a FIFO manner instead of LIFO, improving fairness in the process and mitigating the need to race to kill orders.
+
+# (MEDIUM) Tiny remaining RWA prevents TBY redemption, leading to fund loss
+
+In Bloom's protocol, lenders and borrowers can only redeem their TBYs once all RWAs have been swapped out by the market makers. However, if a small amount of RWA remains in the pool, no market maker will be able to withdraw it, making TBYs permanently unredeemable. As a result, lenders and borrowers will not be able to redeem their TBYs, leading to a significant loss of funds.
+
+## Context
+
+- [`BloomPool.sol#L224-L230`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/BloomPool.sol#L224-L230)
+
+## Impact
+
+All lenders and borrowers holding positions for a specific TBY id could face a substantial loss of funds, as the TBY could become permanently unredeemable due to the inability to fully swap out RWAs.
+
+## Proof of Concept
+
+Let's break it down step by step to understand why this happens.
+
+Lenders deposit 10,000,000 USDC into Bloom, and borrowers match their position within the first 48 hours. After that, market makers swap in RWA for all the USDC in the contract, and TBYs are minted to the lenders.
+
+Once TBY maturity is reached, market makers, for whatever reason, swap out almost all of the RWA, leaving just a tiny amount.
+
+When the next market maker attempts to call the [`swapOut`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/BloomPool.sol#L203-L271) function, which lives inside the [`BloomPool.sol`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/BloomPool.sol) contract, the transaction will revert, meaning that TBY will never be redeemable. Next, we will examine the part of the [`swapOut`](https://github.com/Blueberryfi/bloom-v2/blob/3e1efbfcad8cb14303d3b17382a5ae1ae52feaa8/src/BloomPool.sol#L203-L271) function where this issue occurs, but first, we will assume:
+
+- Leverage (according to the test suite): `50x`
+- Price of RWA in terms of USDC (according to the test suite): `110 USDC`
+- Original RWA amount in the pool: `~92727 RWA`
+- Remaining amount of RWA: `10000e(-18) RWA`
+
+1. Line 224 computes what is the percentage of the RWA that is being swapped out. In our case, we will get 0, since the numerator, `10000 * 1e18`, is lower than the denominator, `~92727e18`.
+
+```solidity
+224:    uint256 percentSwapped = rwaAmount.divWad(collateral.originalRwaAmount);
+```
+
+2. Line 229 computes the TBY amount relative to the percentage of RWAs being swapped out. Since we previously obtained 0 in step 1, the TBY amount will be also 0, which will revert in the next require statement.
+
+```solidity
+229:    uint256 tbyAmount = percentSwapped != Math.WAD ? tbyTotalSupply.mulWadUp(percentSwapped) : tbyTotalSupply;
+230:    require(tbyAmount > 0, Errors.ZeroAmount());
+```
+
+Here's a complete Proof of Concept:
+
+```solidity
+function test_unredeemableTby() public {
+    // ************************ SETUP ************************
+    // `owner` sets `borrower` as a whitelisted borrower, and `rando` & `marketMaker` as whitelisted market makers
+    vm.startPrank(owner);
+    bloomPool.whitelistBorrower(borrower, true);
+    bloomPool.whitelistMarketMaker(marketMaker, true);
+    bloomPool.whitelistMarketMaker(rando, true);
+    vm.stopPrank();
+
+    // Fills `rando` and `marketMaker` with USDC and approves `bloomPool`
+    stable.mint(rando, 20_000_000e6);
+    stable.mint(marketMaker, 20_000_000e6);
+    vm.prank(rando);
+    stable.approve(address(bloomPool), 20_000_000e6);
+    vm.prank(marketMaker);
+    stable.approve(address(bloomPool), 20_000_000e6);
+
+    // `alice` lends 10,000,000 USDC
+    lenders.push(alice);
+    uint256 lendAmount = 10_000_000e6;
+    _createLendOrder(alice, lendAmount);
+    assertEq(bloomPool.amountOpen(alice), lendAmount);
+
+    // `borrower` fulfills `alice`'s order
+    uint256 borrowAmount = _fillOrder(alice, lendAmount);
+    assertEq(bloomPool.amountOpen(alice), 0);
+    assertEq(bloomPool.matchedDepth(), lendAmount);
+
+    // `marketMaker` swaps in RWA for USDC
+    uint256 swapAmountIn = lendAmount + borrowAmount;
+    (uint256 tbyId, uint256 swappedAmountIn) = _swapIn(swapAmountIn);
+    vm.stopPrank();
+    assertEq(swappedAmountIn, swapAmountIn);
+    assertEq(bloomPool.matchedDepth(), 0);
+    assertEq(stable.balanceOf(address(bloomPool)), 0);
+
+    // Skips to when TBY is already mature
+    _skipAndUpdatePrice(180 days, 110e8, 2);
+
+    // *********************** ACTION ************************
+    // `rando` swaps almost all of the RWA for USDC
+    uint256 swapAmountOut = billToken.balanceOf(address(bloomPool)) - 10000;
+    vm.prank(rando);
+    bloomPool.swapOut(tbyId, swapAmountOut);
+
+    // ************************ TEST *************************
+    // Asserting that the `marketMaker` is unable to swap out the remaining RWA
+    swapAmountOut = billToken.balanceOf(address(bloomPool));
+    vm.expectRevert(Errors.ZeroAmount.selector);
+    vm.prank(marketMaker);
+    bloomPool.swapOut(tbyId, swapAmountOut);
+
+    // Asserting that there is still a remaining RWA amount to be swapped out
+    uint256 remainingRwaAmount = billToken.balanceOf(address(bloomPool));
+    assertGt(remainingRwaAmount, 0);
+    console.log("REMAINING RWA AMOUNT   :", remainingRwaAmount);
+
+    // Asserting that TBY is still unredeemable
+    bool isTbyRedeemable = bloomPool.isTbyRedeemable(tbyId);
+    assertFalse(isTbyRedeemable);
+    console.log("IS TBY REDEEMABLE      :", isTbyRedeemable);
+}
+```
+
+Logs:
+
+```
+REMAINING RWA AMOUNT   : 10000
+IS TBY REDEEMABLE      : false
+```
+
+It is **importan** to note that although this issue is unlikely to occur, it should be addressed as it could cause a catastrophic impact. Additionally, its likelihood will increase as Bloom's liquidity depth increase.
+
+## Recommendation
+
+Consider adding the following check immediately after line 221 to ensure no tiny amount of RWA will be left in the pool:
+
+```solidity
+...
+    uint256 remainingRwaAmount = collateral.originalRwaAmount - rwaAmount;
+    if (remainingRwaAmount <= 1e12) require(remainingRwaAmount == 0, "Invalid Remaining RWA Amount");
+...
+```
+
+> **Note:** You could also add a setter function to change the minimum remaining amount of RWA according to price and/or liquidity changes. Additionally, adding a custom error for this case is recommended.
