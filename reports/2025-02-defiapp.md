@@ -1,4 +1,4 @@
-# Distributing unseen rewards to `MFDLogic` breaks distribution accounting
+# (MEDIUM) Distributing unseen rewards to `MFDLogic` breaks distribution accounting
 
 ## Summary
 
@@ -7,6 +7,10 @@ The reward accounting logic in the `MFDLogic` contract can be disrupted by direc
 ## Finding Description
 
 The `MFDLogic::_handleUnseenReward()` function in incorrectly recalculates `rewardPerSecond` when new rewards are sent directly to the contract (e.g., via unseen rewards) and processed by `MFDBase::trackUnseenRewards()`. Specifically, when `block.timestamp < r.periodFinish`, the function computes the `rewardPerSecond` as `((_rewardAmt + leftover) * PRECISION) / $.rewardStreamTime`, where leftover is the remaining undistributed reward amount from the current period. This approach overwrites the existing `rewardPerSecond` with a lower value, effectively discarding accrued rewards for staked users.
+
+## Context
+
+- [MFDLogic.sol#L285-L314](https://github.com/cantina-competitions/defi-app-contracts/blob/main/src/dependencies/MultiFeeDistribution/MFDLogic.sol#L285-L314)
 
 ## Impact Explanation
 
