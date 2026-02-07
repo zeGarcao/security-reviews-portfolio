@@ -10,6 +10,7 @@
 | Nov/2024 	|    Sherlock  	| [Ethos](https://audits.sherlock.xyz/contests/675?filter=questions) 	              |     0    	|      1     	|    0    	|   32nd   	|
 | Oct/2024 	|    Cantina   	| [StakeUp](https://cantina.xyz/competitions/61087007-c7e9-4c4e-9d90-4e118933fecf) 	|     2    	|      2     	|    0    	|   19th   	|
 | Jan/2024 	|    Code4rena 	| [reNFT](https://code4rena.com/audits/2024-01-renft) 	                            |     0    	|      1     	|    0    	|   93rd   	|
+| **Total**	|    -         	| -                                                   	                            |     9    	|      10    	|    6    	|   -     	|
 
 ## 🔒 Private Security Reviews
 
