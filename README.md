@@ -17,6 +17,7 @@
 | **Date** 	|                                  **Protocol**                                   	                                       | **Critical**	| **High**	  | **Medium**	| **Low**   |
 |:--------:	|:-----------------------------------------------------------------------------------------------------------------------: |:------------:|:----------:	|:---------:	|:--------:	|
 | Apr/2025 	| [Energy Bidding Market](https://github.com/dindonero/UniformBiddingMarket/tree/0d4b9002e780a3cddbfc8c2ac8754e0e7f254dce) |     3       	|      2     	|    0    	  |   5     	|
-| Feb/2025 	| [bera.buzz](https://github.com/coveragelabs/portfolio/blob/main/reports/2025-01-bera-buzz.pdf) |     1       	|      3     	|    0    	  |   6     	|
+| Feb/2025 	| [bera.buzz](https://github.com/coveragelabs/portfolio/blob/main/reports/2025-01-bera-buzz.pdf)   |     1       	|      3     	|    0    	  |   6     	|
 | May/2024 	| [Hex One Protocol](https://github.com/coveragelabs/portfolio/blob/main/reports/2024-05-hex1.pdf) |     1       	|      0     	|    0    	  |   7     	|
 | Mar/2024 	| [Hex One Protocol](https://github.com/coveragelabs/portfolio/blob/main/reports/2024-01-hex1.pdf) |     2       	|      1     	|    7    	  |   7     	|
+| **Total**	| -                                                                                                |     7       	|      6     	|    7    	  |   25     	|
